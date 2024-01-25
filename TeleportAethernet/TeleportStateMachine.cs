@@ -11,20 +11,22 @@ using TeleportAethernet.Game;
 using ClickLib.Clicks;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
+using TeleportAethernet.Data;
 
 namespace TeleportAethernet;
 
 public enum TeleportState
 {
-    TeleportToAetheryte,
-    WaitAetheryteTeleportStart,
-    WaitAetheryteTeleportEnd,
-    CheckAetheryteRange,
-    MoveTowardsAetheryte,
-    WaitAetheryteInRange,
-    InteractWithAetheryte,
-    AetheryteSelectAethernet,
-    AethernetMenu,
+    TeleportToAetheryte,        // => WaitAetheryteTeleportStart
+    WaitAetheryteTeleportStart, // => WaitAetheryteTeleportEnd
+    WaitAetheryteTeleportEnd,   // => CheckAetheryteRange
+    CheckAetheryteRange,        // => MoveTowardsAetheryte, InteractWithAetheryte
+    MoveTowardsAetheryte,       // => WaitAetheryteInRange
+    WaitAetheryteInRange,       // => InteractWithAetheryte
+    InteractWithAetheryte,      // => AetheryteSelectFirmament, AetheryteSelectAethernet
+    AetheryteSelectFirmament,   // => Completed
+    AetheryteSelectAethernet,   // => AethernetMenu
+    AethernetMenu,              // => Completed
     Completed,
 }
 
@@ -103,6 +105,9 @@ internal class TeleportStateMachine
             case TeleportState.InteractWithAetheryte:
                 InteractWithAetheryte();
                 break;
+            case TeleportState.AetheryteSelectFirmament:
+                AetheryteSelectFirmament();
+                break;
             case TeleportState.AetheryteSelectAethernet:
                 AetheryteSelectAethernet();
                 break;
@@ -154,9 +159,13 @@ internal class TeleportStateMachine
                 timeoutMilliseconds = 10000;
                 delayMilliseconds = 500;
                 break;
+            case TeleportState.AetheryteSelectFirmament:
+                timeoutMilliseconds = 5000;
+                delayMilliseconds = 250;
+                break;
             case TeleportState.AetheryteSelectAethernet:
                 timeoutMilliseconds = 5000;
-                delayMilliseconds = 100;
+                delayMilliseconds = 250;
                 break;
             case TeleportState.AethernetMenu:
                 timeoutMilliseconds = 5000;
@@ -301,19 +310,42 @@ internal class TeleportStateMachine
         var aetheryteGameObj = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)aetheryteObj.Address;
         TargetSystem.Instance()->InteractWithObject(aetheryteGameObj, true);
 
-        SetState(TeleportState.AetheryteSelectAethernet);
+        // Special case for The Firmament in Ishgard.
+        if ((AetheryteID, AethernetIndex) == TownAethernets.FirmamentIDs)
+        {
+            SetState(TeleportState.AetheryteSelectFirmament);
+        }
+        else
+        {
+            SetState(TeleportState.AetheryteSelectAethernet);
+        }
+    }
+
+    private unsafe bool ClickAetheryteMenu(ushort index)
+    {
+        // Get AddonSelectString and ensure it's ready.
+        var addonSelectString = Addon.GetAddon<AddonSelectString>("SelectString");
+        if (addonSelectString == null || !addonSelectString->AtkUnitBase.IsVisible || addonSelectString->AtkUnitBase.UldManager.LoadedState != AtkLoadState.Loaded)
+            return false;
+
+        ClickSelectString.Using((nint)addonSelectString).SelectItem(index);
+        return true;
+    }
+
+    private unsafe void AetheryteSelectFirmament()
+    {
+        // Click "Travel to the Firmament.", then we're done.
+        // TODO: we should verify whether the quest to unlock the Firmament is
+        //       complete, before attempting to teleport there. If the button
+        //       doesn't exist, then this script will click "Set Home Point"
+        //       instead, which is benign (you get a confirmation dialog).
+        if (ClickAetheryteMenu(2)) SetState(TeleportState.Completed);
     }
 
     private unsafe void AetheryteSelectAethernet()
     {
-        // Get AddonSelectString and ensure it's ready.
-        var addonSelectString = Addon.GetAddon<AddonSelectString>("SelectString");
-        if (addonSelectString == null || !addonSelectString->AtkUnitBase.IsVisible || addonSelectString->AtkUnitBase.UldManager.LoadedState != AtkLoadState.Loaded) return;
-
-        // Click the first item in the list, "Aethernet."
-        ClickSelectString.Using((nint)addonSelectString).SelectItem(0);
-
-        SetState(TeleportState.AethernetMenu);
+        // Click "Aethernet."
+        if (ClickAetheryteMenu(0)) SetState(TeleportState.AethernetMenu);
     }
 
     // This is public because a debug command uses it.

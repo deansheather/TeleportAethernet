@@ -9,6 +9,8 @@ namespace TeleportAethernet.Data;
 
 public static class TownAethernets
 {
+    public static readonly (uint, byte) FirmamentIDs = (70, 100);
+
     public static readonly TownAethernet Gridania = new(2, "Gridania", new()
     {
         new(1, 2, "Archers' Guild"),
@@ -80,6 +82,12 @@ public static class TownAethernets
         new(8, 70, "The Last Vigil"),
         // These work, but they're probably never used.
         // new(_, 70, "The Gates of Judgement (Coerthas Central Highlands)"),
+
+        // Firmament is a special case. It doesn't have an Aethernet Shard, but
+        // you can click "Travel to the Firmament" on the Aetheryte menu to
+        // teleport to it. TeleportStateMachine has special handling for this
+        // specific fake Aethernet ID.
+        new(FirmamentIDs.Item2, 70, "The Firmament"),
     });
 
     public static readonly TownAethernet Idyllshire = new(75, "Idyllshire", new()

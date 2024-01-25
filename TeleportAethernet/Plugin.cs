@@ -125,7 +125,7 @@ public sealed class Plugin : IDalamudPlugin
             }
 
             // Try to find an alias.
-            var alias = ConfigurationService.Config.AethernetAliases.First(a => a.Alias == aethernetName);
+            var alias = ConfigurationService.Config.AethernetAliases.FirstOrDefault(a => a.Alias == aethernetName);
             if (alias != null)
             {
                 aetheryteID = alias.AetheryteID;
