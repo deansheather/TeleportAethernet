@@ -1,0 +1,150 @@
+# This is taken from Glamourer's repo and changed a bunch. Notably, the testing
+# workflow is merged into the release workflow.
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Compute Version
+        id: version
+        run: |
+          $ver = '${{ github.ref_name }}'
+          echo "version=$ver" >> "$env:GITHUB_OUTPUT"
+          if ($ver.StartsWith('testing_')) {
+            $ver = $ver.Substring(8)
+            echo "testing=true" >> "$env:GITHUB_OUTPUT"
+            echo "configuration=Debug" >> "$env:GITHUB_OUTPUT"
+            echo "build_dir=./TeleportAethernet/bin/Debug" >> "$env:GITHUB_OUTPUT"
+          } else {
+            echo "testing=false" >> "$env:GITHUB_OUTPUT"
+            echo "configuration=Release" >> "$env:GITHUB_OUTPUT"
+            echo "build_dir=./TeleportAethernet/bin/Release" >> "$env:GITHUB_OUTPUT"
+          }
+
+      - name: Print Version
+        run: |
+          echo "Version: ${{ steps.version.outputs.version }}"
+          echo "Testing: ${{ steps.version.outputs.testing }}"
+          echo "Configuration: ${{ steps.version.outputs.configuration }}"
+          echo "Build Directory: ${{ steps.version.outputs.build_dir }}"
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: "7.x.x"
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Download Dalamud
+        run: |
+          Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/stg/latest.zip -OutFile latest.zip
+          Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\dev"
+          rm latest.zip
+
+      - name: Build
+        run: |
+          $ver = '${{ steps.version.outputs.version }}'
+          $configuration = '${{ steps.version.outputs.configuration }}'
+          Invoke-Expression 'dotnet build --no-restore --configuration $configuration --nologo -p:Version=$ver -p:FileVersion=$ver -p:AssemblyVersion=$ver'
+
+      - name: Build Tree
+        run: tree /F '${{ steps.version.outputs.build_dir }}'
+
+      - name: Write Version Into Dalamud JSON
+        run: |
+          $ver = '${{ steps.version.outputs.version }}'
+          $build_dir = '${{ steps.version.outputs.build_dir }}'
+          $path = "${build_dir}/TeleportAethernet.json"
+          $json = Get-Content -Raw $path | ConvertFrom-Json
+          $json.AssemblyVersion = $ver
+          $content = $json | ConvertTo-Json
+          Set-Content -Path $path -Value $content
+
+          echo "TeleportAethernet.json:"
+          Get-Content -Raw $path
+
+      - name: Archive
+        run: |
+          $build_dir = '${{ steps.version.outputs.build_dir }}'
+          Compress-Archive -Path "${build_dir}/*" -DestinationPath TeleportAethernet.zip
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v2.2.1
+        with:
+          path: |
+            ${{ steps.version.outputs.build_dir }}/*
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Teleport to Aethernet ${{ github.ref }}
+          draft: false
+          prerelease: ${{ steps.version.outputs.testing == 'true' }}
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./TeleportAethernet.zip
+          asset_name: TeleportAethernet.zip
+          asset_content_type: application/zip
+
+      - name: Write repo.json
+        if: steps.version.outputs.testing == 'false'
+        run: |
+          $ref = '${{ github.ref_name }}'
+          $path = './repo.json'
+          $json = Get-Content -Raw $path | ConvertFrom-Json
+          $json[0].AssemblyVersion = $ref
+          $json[0].TestingAssemblyVersion = $ref
+          $json[0].DownloadLinkInstall = $json.DownloadLinkInstall -replace '[^/]+/TeleportAethernet.zip',"$ref/TeleportAethernet.zip"
+          $json[0].DownloadLinkTesting = $json.DownloadLinkTesting -replace '[^/]+/TeleportAethernet.zip',"$ref/TeleportAethernet.zip"
+          $json[0].DownloadLinkUpdate = $json.DownloadLinkUpdate -replace '[^/]+/TeleportAethernet.zip',"$ref/TeleportAethernet.zip"
+          $json[0].LastUpdate = ([DateTimeOffset](Get-Date)).ToUnixTimeSeconds()
+          $content = $json | ConvertTo-Json -AsArray
+          Set-Content -Path $path -Value $content
+
+      - name: Write repo.json (testing)
+        if: steps.version.outputs.testing == 'true'
+        run: |
+          $ref = '${{ github.ref_name }}'
+          $ver = '${{ steps.version.outputs.version }}'
+          $path = './repo.json'
+          $json = Get-Content -Raw $path | ConvertFrom-Json
+          $json[0].TestingAssemblyVersion = $ver
+          $json[0].DownloadLinkTesting = $json.DownloadLinkTesting -replace '[^/]+/.zip',"$ref/TeleportAethernet.zip"
+          $content = $json | ConvertTo-Json -AsArray
+          Set-Content -Path $path -Value $content
+
+      - name: Commit repo.json
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git fetch origin main
+          git branch -f main ${{ github.sha }}
+          git checkout main
+          git add repo.json
+          git commit -m "[CI] Updating repo.json for ${{ github.ref_name }}" || true
+          git push origin main

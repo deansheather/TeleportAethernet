@@ -1,0 +1,18 @@
+{
+  "Author": "deansheather",
+  "Name": "Teleport to Aethernet",
+  "Punchline": "Chat commands for teleporting to Aethernet Shards in towns.",
+  "Description": "Teleports to the town's Aetheryte, then automatically opens the Aethernet menu on the Aetheryte and selects the correct Aethernet destination.",
+  "Tags": [
+    "Teleport",
+    "Aethernet",
+    "Aetheryte"
+  ],
+  "InternalName": "teleportaethernet",
+  "AssemblyVersion": "0.0.0.1",
+  "RepoUrl": "https://github.com/deansheather/TeleportAethernet",
+  "ApplicableVersion": "any",
+  "DalamudAPILevel": 9,
+  "ImageUrls": null,
+  "IconUrl": "https://raw.githubusercontent.com/deansheather/TeleportAethernet/main/images/icon.png"
+}
