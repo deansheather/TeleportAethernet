@@ -56,6 +56,18 @@ public static class TownAethernets
         // new(_, 9, "Airship Landing"),
     });
 
+    public static readonly TownAethernet GoldSaucer = new(62, "The Gold Saucer", new()
+    {
+        new(1, 62, "Entrance & Card Squares"),
+        new(2, 62, "Wonder Square East"),
+        new(3, 62, "Wonder Square West"),
+        new(4, 62, "Event Square"),
+        new(5, 62, "Cactbot Board"),
+        new(6, 62, "Round Square"),
+        new(7, 62, "Chocobo Square"),
+        new(8, 62, "Minion Square"),
+    });
+
     public static readonly TownAethernet Ishgard = new(70, "Ishgard", new()
     {
         new(1, 70, "The Forgotten Knight"),
@@ -165,6 +177,7 @@ public static class TownAethernets
         Gridania,
         LimsaLominsa,
         Uldah,
+        GoldSaucer,
         Ishgard,
         Idyllshire,
         RhalgrsReach,

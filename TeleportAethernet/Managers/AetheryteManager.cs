@@ -21,6 +21,7 @@ public class AetheryteManager
         return visibleAetherytes;
     }
 
+    // TODO: does this actually work? test on a new character
     internal static unsafe void Update()
     {
         if (DalamudServices.ClientState.LocalPlayer == null) return;
