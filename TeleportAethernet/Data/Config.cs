@@ -29,5 +29,10 @@ namespace TeleportAethernet.Data
         // Aliases for Aethernets. These work for `/tpa` and also get sent over
         // IPC to the Wotsit plugin.
         public List<AethernetAlias> AethernetAliases { get; set; } = new();
+
+        // Delay and timeout values in milliseconds for each
+        // TeleportStateMachine state.
+        public Dictionary<TeleportState, int> customTeleportStateDelay = new();
+        public Dictionary<TeleportState, int> customTeleportStateTimeout = new();
     }
 }

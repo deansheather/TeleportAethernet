@@ -12,6 +12,8 @@ using ClickLib.Clicks;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 using TeleportAethernet.Data;
+using System.Collections.Generic;
+using TeleportAethernet.Services;
 
 namespace TeleportAethernet;
 
@@ -37,6 +39,23 @@ internal class TeleportStateMachine
     // If we're stuck on a wall or something and can't reach 10.0f, we'll stop
     // auto movement after 1s and try to interact anyways.
     public static readonly float MAX_AETHERYTE_INTERACT_DISTANCE = 10.0f;
+
+    // Delay and timeout values in milliseconds for each TeleportStateMachine
+    // state.
+    public static readonly Dictionary<TeleportState, (int, int)> DefaultTeleportStateDelayTimeout = new()
+    {
+        { TeleportState.TeleportToAetheryte, (10, 3000) },
+        { TeleportState.WaitAetheryteTeleportStart, (0, 10000) }, // this includes cast time
+        { TeleportState.WaitAetheryteTeleportEnd, (100, 20000) }, // this includes loading time
+        { TeleportState.CheckAetheryteRange, (1000, 5000) },
+        { TeleportState.MoveTowardsAetheryte, (100, 5000) },
+        { TeleportState.WaitAetheryteInRange, (100, 10000) },     // this includes walking time
+        { TeleportState.InteractWithAetheryte, (500, 10000) },
+        { TeleportState.AetheryteSelectFirmament, (250, 5000) },
+        { TeleportState.AetheryteSelectAethernet, (250, 5000) },
+        { TeleportState.AethernetMenu, (100, 5000) },
+        { TeleportState.Completed, (0, 0) },
+    };
 
     // Params:
     public uint AetheryteID { get; init; }
@@ -126,57 +145,16 @@ internal class TeleportStateMachine
         State = state;
         LastStateTransition = DateTime.Now;
 
-        // Each state has a different timeout value. Some states take
-        // longer because of animations/loading screens.
-        var timeoutMilliseconds = 0;
-        var delayMilliseconds = 0;
-        switch (state)
-        {
-            case TeleportState.TeleportToAetheryte:
-                timeoutMilliseconds = 3000;
-                delayMilliseconds = 10;
-                break;
-            case TeleportState.WaitAetheryteTeleportStart:
-                timeoutMilliseconds = 10000; // this includes cast time
-                break;
-            case TeleportState.WaitAetheryteTeleportEnd:
-                timeoutMilliseconds = 20000; // this includes loading time
-                delayMilliseconds = 100;
-                break;
-            case TeleportState.CheckAetheryteRange:
-                timeoutMilliseconds = 5000;
-                delayMilliseconds = 1000;
-                break;
-            case TeleportState.MoveTowardsAetheryte:
-                timeoutMilliseconds = 5000;
-                delayMilliseconds = 100;
-                break;
-            case TeleportState.WaitAetheryteInRange:
-                timeoutMilliseconds = 10000; // this includes travel time
-                delayMilliseconds = 100;
-                break;
-            case TeleportState.InteractWithAetheryte:
-                timeoutMilliseconds = 10000;
-                delayMilliseconds = 500;
-                break;
-            case TeleportState.AetheryteSelectFirmament:
-                timeoutMilliseconds = 5000;
-                delayMilliseconds = 250;
-                break;
-            case TeleportState.AetheryteSelectAethernet:
-                timeoutMilliseconds = 5000;
-                delayMilliseconds = 250;
-                break;
-            case TeleportState.AethernetMenu:
-                timeoutMilliseconds = 5000;
-                delayMilliseconds = 100;
-                break;
-            case TeleportState.Completed:
-                break;
-        }
+        var (delayMilliseconds, timeoutMilliseconds) = DefaultTeleportStateDelayTimeout.GetValueOrDefault(State);
 
-        Timeout = timeoutMilliseconds != 0 ? LastStateTransition.AddMilliseconds(timeoutMilliseconds) : null;
+        // Try load user custom values.
+        var customDelay = ConfigurationService.Config.customTeleportStateDelay.GetValueOrDefault(State);
+        delayMilliseconds = customDelay > 0 ? customDelay : delayMilliseconds;
+        var customTimeout = ConfigurationService.Config.customTeleportStateTimeout.GetValueOrDefault(State);
+        timeoutMilliseconds = customTimeout > 0 ? customTimeout : timeoutMilliseconds;
+
         Delay = delayMilliseconds != 0 ? LastStateTransition.AddMilliseconds(delayMilliseconds) : null;
+        Timeout = timeoutMilliseconds != 0 ? LastStateTransition.AddMilliseconds(delayMilliseconds + timeoutMilliseconds) : null;
 
         DalamudServices.Log.Info($"TeleportStateMachine: SetState({state}), timeoutMS={timeoutMilliseconds}, delayMS={delayMilliseconds}");
     }

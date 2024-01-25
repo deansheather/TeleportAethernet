@@ -25,15 +25,7 @@ public class WotsitManager : IDisposable
 
     public WotsitManager()
     {
-        try
-        {
-            TryInit();
-        }
-        catch (Exception e)
-        {
-            DalamudServices.Log.Warning($"Failed to initialize WotsitManager. {e}");
-        }
-
+        TryInit();
         faAvailable = DalamudServices.PluginInterface.GetIpcSubscriber<bool>("FA.Available");
         faAvailable.Subscribe(TryInit);
         faInvoke = DalamudServices.PluginInterface.GetIpcSubscriber<string, bool>("FA.Invoke");
@@ -63,6 +55,18 @@ public class WotsitManager : IDisposable
     }
 
     public void TryInit()
+    {
+        try
+        {
+            Init();
+        }
+        catch (Exception e)
+        {
+            DalamudServices.Log.Warning($"Failed to initialize WotsitManager. {e}");
+        }
+    }
+
+    private void Init()
     {
         ClearWotsit();
 
