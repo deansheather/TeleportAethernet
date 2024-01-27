@@ -10,18 +10,18 @@
       "Aetheryte"
     ],
     "InternalName": "teleportaethernet",
-    "AssemblyVersion": "0.0.0.4",
-    "TestingAssemblyVersion": "0.0.0.4",
+    "AssemblyVersion": "0.0.0.6",
+    "TestingAssemblyVersion": "0.0.0.6",
     "RepoUrl": "https://github.com/deansheather/TeleportAethernet",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 9,
     "IsHide": "False",
     "IsTestingExclusive": "False",
     "DownloadCount": 1,
-    "LastUpdate": 1706199504,
-    "DownloadLinkInstall": "https://github.com/deansheather/TeleportAethernet/releases/download/0.0.0.4/TeleportAethernet.zip",
-    "DownloadLinkUpdate": "https://github.com/deansheather/TeleportAethernet/releases/download/0.0.0.4/TeleportAethernet.zip",
-    "DownloadLinkTesting": "https://github.com/deansheather/TeleportAethernet/releases/download/0.0.0.4/TeleportAethernet.zip",
+    "LastUpdate": 1706327434,
+    "DownloadLinkInstall": "https://github.com/deansheather/TeleportAethernet/releases/download/0.0.0.6/TeleportAethernet.zip",
+    "DownloadLinkUpdate": "https://github.com/deansheather/TeleportAethernet/releases/download/0.0.0.6/TeleportAethernet.zip",
+    "DownloadLinkTesting": "https://github.com/deansheather/TeleportAethernet/releases/download/0.0.0.6/TeleportAethernet.zip",
     "IconUrl": "https://raw.githubusercontent.com/deansheather/TeleportAethernet/main/images/icon.png"
   }
 ]
