@@ -47,13 +47,13 @@ internal class TeleportStateMachine
         { TeleportState.TeleportToAetheryte, (10, 3000) },
         { TeleportState.WaitAetheryteTeleportStart, (0, 10000) }, // this includes cast time
         { TeleportState.WaitAetheryteTeleportEnd, (100, 20000) }, // this includes loading time
-        { TeleportState.CheckAetheryteRange, (1000, 5000) },
-        { TeleportState.MoveTowardsAetheryte, (100, 5000) },
+        { TeleportState.CheckAetheryteRange, (1500, 8000) },      // may include a little bit of loading time
+        { TeleportState.MoveTowardsAetheryte, (0, 3000) },
         { TeleportState.WaitAetheryteInRange, (100, 10000) },     // this includes walking time
         { TeleportState.InteractWithAetheryte, (500, 10000) },
-        { TeleportState.AetheryteSelectFirmament, (250, 5000) },
-        { TeleportState.AetheryteSelectAethernet, (250, 5000) },
-        { TeleportState.AethernetMenu, (100, 5000) },
+        { TeleportState.AetheryteSelectFirmament, (1000, 5000) },
+        { TeleportState.AetheryteSelectAethernet, (1000, 5000) },
+        { TeleportState.AethernetMenu, (1000, 5000) },
         { TeleportState.Completed, (0, 0) },
     };
 

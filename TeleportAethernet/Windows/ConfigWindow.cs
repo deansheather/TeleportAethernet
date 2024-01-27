@@ -32,7 +32,7 @@ public class ConfigWindow : Window
         "Teleport to Aethernet Config",
         ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
-        Size = new Vector2(500, 350);
+        Size = new Vector2(800, 500);
         SizeCondition = ImGuiCond.Appearing;
         this.createAliasWindow = createAliasWindow;
     }
@@ -50,27 +50,29 @@ public class ConfigWindow : Window
         }
     }
 
-    public void DrawInner()
+    private void DrawInner()
     {
-        var wotsitIntegrationEnabled = ConfigurationService.Config.WotsitIntegrationEnabled;
-        ImGui.Text("Wotsit Integration:");
-        ImGui.SameLine();
-        if (ImGui.Checkbox("", ref wotsitIntegrationEnabled))
+        ImGui.BeginTabBar("ConfigTabs");
+        if (ImGui.BeginTabItem("Aliases"))
         {
-            ConfigurationService.Config.WotsitIntegrationEnabled = wotsitIntegrationEnabled;
-            ConfigurationService.Save();
+            DrawAliasesTab();
+            ImGui.EndTabItem();
         }
-
-        ImGui.Text("Aliases:");
-        ImGui.SameLine();
-        if (ImGui.Button("New"))
+        if (ImGui.BeginTabItem("Settings"))
         {
-            DalamudServices.Log.Information("Create alias button pressed");
+            DrawSettingsTab();
+            ImGui.EndTabItem();
+        }
+    }
+
+    private void DrawAliasesTab()
+    {
+        if (ImGui.Button("New Alias"))
+        {
             createAliasWindow.CreateAlias();
         }
 
-        // Scrolling table of aliases.
-        ImGui.BeginChild("Aliases", new Vector2(0, 200), true);
+        ImGui.BeginChild("Aliases", new Vector2(0, 0), true);
         ImGui.Columns(4, "Alias"); // alias, town name or aetheryte ID, aethernet shard name or index, delete
         ImGui.Text("Alias");
         ImGui.NextColumn();
@@ -112,7 +114,6 @@ public class ConfigWindow : Window
             var isDeleting = ImGui.Button("Delete");
             if (isDeleting && ImGui.GetIO().KeyCtrl && ImGui.GetIO().KeyShift)
             {
-                DalamudServices.Log.Information("Delete button pressed");
                 ConfigurationService.Config.AethernetAliases.RemoveAt(i);
                 ConfigurationService.Save();
                 DalamudServices.PluginInterface.UiBuilder.AddNotification($"[TeleportAethernet] Deleted alias {alias.Alias}", null, NotificationType.Success);
@@ -128,13 +129,35 @@ public class ConfigWindow : Window
             ImGui.PopID();
         }
         ImGui.EndChild();
+    }
 
-        // Teleport state delays and timeouts.
-        ImGui.Text("Teleport state delays and timeouts:");
+    private static void DrawSettingsTab()
+    {
+        var wotsitIntegrationEnabled = ConfigurationService.Config.WotsitIntegrationEnabled;
+        ImGui.Text("Wotsit Integration:");
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.BeginTooltip();
+            ImGui.Text("Requires the Wotsit plugin to be enabled. Enables quick searching and selecting of aliases and known Aethernet destinations.");
+            ImGui.EndTooltip();
+        }
+        ImGui.SameLine();
+        if (ImGui.Checkbox("", ref wotsitIntegrationEnabled))
+        {
+            ConfigurationService.Config.WotsitIntegrationEnabled = wotsitIntegrationEnabled;
+            ConfigurationService.Save();
+        }
+
+        ImGui.Text("Teleport State Delays and Timeouts:");
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.BeginTooltip();
+            ImGui.Text("Customize the delays and timeouts for each teleport state. The default values are intentionally a little bit slow to avoid executing many actions quickly and looking suspicious, but you can adjust these values to make certain actions quicker or slower.");
+            ImGui.EndTooltip();
+        }
         ImGui.SameLine();
         if (ImGui.Button("Reset to Default") && ImGui.GetIO().KeyCtrl && ImGui.GetIO().KeyShift)
         {
-            DalamudServices.Log.Information("Reset delays and timeouts button pressed");
             ConfigurationService.Config.customTeleportStateDelay = new();
             ConfigurationService.Config.customTeleportStateTimeout = new();
             ConfigurationService.Save();
@@ -143,12 +166,12 @@ public class ConfigWindow : Window
         if (ImGui.IsItemHovered())
         {
             ImGui.BeginTooltip();
-            ImGui.Text("Hold Ctrl+Shift to delete");
+            ImGui.Text("Hold Ctrl+Shift to reset all values");
             ImGui.EndTooltip();
         }
         ImGui.NextColumn();
 
-        ImGui.BeginChild("TeleportState", new Vector2(0, 200), true);
+        ImGui.BeginChild("TeleportState", new Vector2(0, 0), true);
         ImGui.Columns(3, "TeleportState"); // state, delay, timeout
         ImGui.Text("Teleport State");
         ImGui.NextColumn();
