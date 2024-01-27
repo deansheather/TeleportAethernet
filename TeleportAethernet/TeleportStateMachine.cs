@@ -227,6 +227,14 @@ internal class TeleportStateMachine
         if (DalamudServices.ClientState.LocalPlayer == null) return;
 
         var aetheryteObj = NearestAetheryte();
+
+        // Target it.
+        DalamudServices.TargetManager.Target = aetheryteObj;
+
+        // Send `/lockon`. This doesn't need to be undone as it will be undone
+        // automatically when the Aetheryte is untargeted.
+        ChatService.Instance.SendMessage("/lockon");
+
         var distance = DistanceToGameObject(aetheryteObj);
         if (distance > MAX_AETHERYTE_INTERACT_DISTANCE)
         {
@@ -241,15 +249,6 @@ internal class TeleportStateMachine
     private unsafe void MoveTowardsAetheryte()
     {
         if (DalamudServices.ClientState.LocalPlayer == null) return;
-
-        var aetheryteObj = NearestAetheryte();
-
-        // Target it.
-        DalamudServices.TargetManager.Target = aetheryteObj;
-
-        // Send `/lockon`. This doesn't need to be undone as it will be undone
-        // automatically when the Aetheryte is untargeted.
-        ChatService.Instance.SendMessage("/lockon");
 
         // Send `/automove on`. This needs to be undone when we're in range of
         // the Aetheryte.
@@ -280,9 +279,6 @@ internal class TeleportStateMachine
         if (DalamudServices.ClientState.LocalPlayer == null) return;
 
         var aetheryteObj = NearestAetheryte();
-
-        // Target it.
-        DalamudServices.TargetManager.Target = aetheryteObj;
 
         // Interact with it.
         var aetheryteGameObj = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)aetheryteObj.Address;

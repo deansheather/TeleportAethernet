@@ -142,7 +142,7 @@ public class ConfigWindow : Window
             ImGui.EndTooltip();
         }
         ImGui.SameLine();
-        if (ImGui.Checkbox("", ref wotsitIntegrationEnabled))
+        if (ImGui.Checkbox("Enabled", ref wotsitIntegrationEnabled))
         {
             ConfigurationService.Config.WotsitIntegrationEnabled = wotsitIntegrationEnabled;
             ConfigurationService.Save();
