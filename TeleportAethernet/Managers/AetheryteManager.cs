@@ -3,17 +3,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TeleportAethernet.Game;
-using TeleportAethernet.Services;
 
 namespace TeleportAethernet.Managers;
 
 public class AetheryteManager
 {
     internal static List<uint> visibleAetherytes = new();
-    
+
     internal static DateTime lastUpdated = DateTime.MinValue;
 
     internal static TimeSpan timeSpan = TimeSpan.FromSeconds(5);
+
+    // Events:
+    public delegate void OnListUpdatedDelegate(List<uint> newList);
+    public static event OnListUpdatedDelegate? OnListUpdated;
 
     internal static List<uint> GetList()
     {
@@ -39,13 +42,13 @@ public class AetheryteManager
             }
             ids.Sort();
 
-            // If the list of visible aetherytes has changed, trigger a Wotsit
-            // update.
+            // If the list of visible aetherytes has changed, dispatch an
+            // event.
             if (!visibleAetherytes.SequenceEqual(ids))
             {
                 DalamudServices.Log.Info("Aetherytes list updated");
                 visibleAetherytes = ids;
-                ConfigurationService.WotsitManager.TryInit();
+                OnListUpdated?.Invoke(ids);
             }
             lastUpdated = DateTime.Now;
         }

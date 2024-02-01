@@ -9,14 +9,14 @@ namespace TeleportAethernet.Managers;
 
 public class WotsitManager : IDisposable
 {
-    private static readonly string PluginInternalName = "TeleportAethernet";
+    private static readonly string PluginInternalName = "Teleport to Aethernet";
 
     // Map from Guid string to (aetheryte ID, aethernet index).
     private readonly Dictionary<string, (uint, byte)> registered = new();
 
+    // Dalamud IPC:
     private readonly ICallGateSubscriber<bool> faAvailable;
     private readonly ICallGateSubscriber<string, bool> faInvoke;
-    private ICallGateSubscriber<string, bool>? faUnregisterAll;
     private ICallGateSubscriber<string, string, string, uint, string>? faRegisterWithSearch;
 
     // Events:
@@ -25,7 +25,6 @@ public class WotsitManager : IDisposable
 
     public WotsitManager()
     {
-        TryInit();
         faAvailable = DalamudServices.PluginInterface.GetIpcSubscriber<bool>("FA.Available");
         faAvailable.Subscribe(TryInit);
         faInvoke = DalamudServices.PluginInterface.GetIpcSubscriber<string, bool>("FA.Invoke");
@@ -35,8 +34,8 @@ public class WotsitManager : IDisposable
     public void Dispose()
     {
         ClearWotsit();
-        faAvailable.Unsubscribe(TryInit);
-        faInvoke.Unsubscribe(HandleInvoke);
+        faAvailable?.Unsubscribe(TryInit);
+        faInvoke?.Unsubscribe(HandleInvoke);
         GC.SuppressFinalize(this);
     }
 
@@ -46,19 +45,24 @@ public class WotsitManager : IDisposable
         OnInvoke?.Invoke(registered[id].Item1, registered[id].Item2);
     }
 
-    private void ClearWotsit()
+    public void ClearWotsit()
     {
-        // TODO: this doesn't seem to work :/
-        faUnregisterAll = DalamudServices.PluginInterface.GetIpcSubscriber<string, bool>("FA.UnregisterAll");
+        var faUnregisterAll = DalamudServices.PluginInterface.GetIpcSubscriber<string, bool>("FA.UnregisterAll");
         faUnregisterAll!.InvokeFunc(PluginInternalName);
+        DalamudServices.Log.Debug($"WotsitManager: Invoked FA.UnregisterAll(\"{PluginInternalName}\")");
         registered.Clear();
     }
 
     public void TryInit()
     {
+        TryInit(AetheryteManager.GetList());
+    }
+
+    public void TryInit(List<uint> visibleAetheryteIDs)
+    {
         try
         {
-            Init();
+            Init(visibleAetheryteIDs);
         }
         catch (Exception e)
         {
@@ -66,7 +70,7 @@ public class WotsitManager : IDisposable
         }
     }
 
-    private void Init()
+    public void Init(List<uint> visibleAetheryteIDs)
     {
         ClearWotsit();
 
@@ -77,6 +81,7 @@ public class WotsitManager : IDisposable
 
         foreach (var alias in config.AethernetAliases)
         {
+            if (!visibleAetheryteIDs.Contains(alias.AetheryteID)) continue;
             AddWotsitEntry(alias.Alias, alias.AetheryteID, alias.AethernetIndex);
         }
 
@@ -84,20 +89,21 @@ public class WotsitManager : IDisposable
         {
             foreach (var aethernet in townAethernet.AethernetList)
             {
+                if (!visibleAetheryteIDs.Contains(aethernet.AetheryteID)) continue;
                 AddWotsitEntry(aethernet.Name, townAethernet.AetheryteID, aethernet.Index);
             }
         }
+
     }
 
     internal void AddWotsitEntry(string name, uint aetheryteID, byte aethernetIndex)
     {
-        // Hide spoilers.
-        if (!AetheryteManager.AetheryteIsVisible(aetheryteID)) return;
-
         var displayName = $"Teleport to Aethernet - {name}";
 
         // TODO: icon ID
         var id = faRegisterWithSearch!.InvokeFunc(PluginInternalName, displayName, name, 0);
         registered.Add(id, (aetheryteID, aethernetIndex));
+        DalamudServices.Log.Debug($"WotsitManager: Invoked FA.RegisterWithSearch(\"{PluginInternalName}\", \"{displayName}\", \"{name}\", 0)");
+        DalamudServices.Log.Debug($"WotsitManager: Added Wotsit mapping: {id} => ({aetheryteID}, {aethernetIndex})");
     }
 }

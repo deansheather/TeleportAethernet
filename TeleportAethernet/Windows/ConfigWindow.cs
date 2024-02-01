@@ -92,17 +92,14 @@ public class ConfigWindow : Window
             // TODO: this should be provided by the Manager class and cached
             // when we start reading values from the game instead of hardcoding
             // them.
-            var targetTownName = $"??? ({alias.AetheryteID})";
-            var targetAethernetShardName = $"??? ({alias.AethernetIndex})";
+            var targetTownName = "???";
+            var targetAethernetShardName = "???";
             var targetTownAethernet = TownAethernets.GetByAetheryteID(alias.AetheryteID);
             if (targetTownAethernet != null)
             {
                 targetTownName = targetTownAethernet.Value.TownName;
-                if (alias.AethernetIndex < targetTownAethernet.Value.AethernetList.Count)
-                {
-                    var name = targetTownAethernet.Value.AethernetList.Find(shard => shard.Index == alias.AethernetIndex).Name;
-                    if (name != null) targetAethernetShardName = name;
-                }
+                var name = targetTownAethernet.Value.AethernetList.Find(shard => shard.Index == alias.AethernetIndex).Name;
+                if (name != null) targetAethernetShardName = name;
             }
 
             ImGui.Text(alias.Alias ?? "???");

@@ -9,6 +9,7 @@ using TeleportAethernet.Data;
 using Dalamud.Interface.Windowing;
 using TeleportAethernet.Windows;
 using TeleportAethernet.Services;
+using TeleportAethernet.Managers;
 
 namespace TeleportAethernet;
 
@@ -23,6 +24,8 @@ public sealed class Plugin : IDalamudPlugin
     private readonly ConfigWindow configWindow;
 
     private readonly AliasWindow aliasWindow;
+
+    private readonly WotsitManager wotsitManager;
 
     private TeleportStateMachine? teleportStateMachine;
 
@@ -48,11 +51,31 @@ public sealed class Plugin : IDalamudPlugin
         configWindow = new ConfigWindow(aliasWindow);
         windowSystem.AddWindow(configWindow);
 
+        // Initialize Aetherytes list and initialize Wotsit integration.
+        var aetheryteList = AetheryteManager.GetList();
+        wotsitManager = new WotsitManager();
+        wotsitManager.TryInit(aetheryteList);
+        AetheryteManager.OnListUpdated += wotsitManager.TryInit;
+        ConfigurationService.OnConfigSaved += wotsitManager.TryInit;
+        wotsitManager.OnInvoke += SetTeleport;
+
         DalamudServices.Framework.Update += OnFrameworkUpdate;
         DalamudServices.PluginInterface.UiBuilder.Draw += windowSystem.Draw;
-        DalamudServices.PluginInterface.UiBuilder.OpenConfigUi += () => configWindow.IsOpen = true;
+        DalamudServices.PluginInterface.UiBuilder.OpenConfigUi += ShowConfigWindow;
+    }
 
-        ConfigurationService.WotsitManager.OnInvoke += SetTeleport;
+    public void Dispose()
+    {
+        DalamudServices.CommandManager.RemoveHandler(CommandName);
+        DalamudServices.Framework.Update -= OnFrameworkUpdate;
+        DalamudServices.PluginInterface.UiBuilder.Draw -= windowSystem.Draw;
+        DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= ShowConfigWindow;
+
+        AetheryteManager.OnListUpdated -= wotsitManager.TryInit;
+        ConfigurationService.OnConfigSaved -= wotsitManager.TryInit;
+        wotsitManager.OnInvoke -= SetTeleport;
+
+        wotsitManager.Dispose();
     }
 
     private void OnFrameworkUpdate(IFramework framework)
@@ -74,14 +97,6 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    public void Dispose()
-    {
-        DalamudServices.CommandManager.RemoveHandler(CommandName);
-        DalamudServices.Framework.Update -= OnFrameworkUpdate;
-        ConfigurationService.WotsitManager.OnInvoke -= SetTeleport;
-        ConfigurationService.WotsitManager.Dispose();
-    }
-
     private unsafe void OnCommand(string command, string args)
     {
         try
@@ -89,6 +104,43 @@ public sealed class Plugin : IDalamudPlugin
             if (args == "config")
             {
                 configWindow.IsOpen = true;
+                return;
+            }
+
+            if (args.StartsWith("wotsit"))
+            {
+                if (args == "wotsit clear")
+                {
+                    try
+                    {
+                        wotsitManager.ClearWotsit();
+                    }
+                    catch (Exception e)
+                    {
+                        DalamudServices.Log.Warning($"Clear Wotsit integration on user request: {e}");
+                        DalamudServices.ChatGui.PrintError($"Failed to clear Wotsit: {e}");
+                        return;
+                    }
+                    DalamudServices.ChatGui.Print("Cleared Wotsit integration items.");
+                }
+                else if (args == "wotsit init")
+                {
+                    try
+                    {
+                        wotsitManager.Init(AetheryteManager.GetList());
+                    }
+                    catch (Exception e)
+                    {
+                        DalamudServices.Log.Warning($"Init Wotsit integration on user request: {e}");
+                        DalamudServices.ChatGui.PrintError($"Failed to init Wotsit: {e}");
+                        return;
+                    }
+                    DalamudServices.ChatGui.Print("Reinitalized Wotsit integration.");
+                }
+                else
+                {
+                    DalamudServices.ChatGui.PrintError("Unknown Wotsit command.");
+                }
                 return;
             }
 
@@ -169,5 +221,10 @@ public sealed class Plugin : IDalamudPlugin
     {
         if (teleportStateMachine != null) return;
         teleportStateMachine = new TeleportStateMachine(aetheryteID, aethernetIndex);
+    }
+
+    public void ShowConfigWindow()
+    {
+        configWindow.IsOpen = true;
     }
 }

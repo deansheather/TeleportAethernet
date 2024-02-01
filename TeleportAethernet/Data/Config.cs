@@ -1,7 +1,6 @@
 using Dalamud.Configuration;
 using System;
 using System.Collections.Generic;
-using TeleportAethernet.Game;
 
 namespace TeleportAethernet.Data
 {
