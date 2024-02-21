@@ -28,6 +28,8 @@ public class AetheryteManager
     internal static unsafe void Update()
     {
         if (DalamudServices.ClientState.LocalPlayer == null) return;
+        DalamudServices.Log.Verbose("AetheryteManager.Update() called");
+        lastUpdated = DateTime.Now;
 
         try
         {
@@ -50,7 +52,6 @@ public class AetheryteManager
                 visibleAetherytes = ids;
                 OnListUpdated?.Invoke(ids);
             }
-            lastUpdated = DateTime.Now;
         }
         catch (Exception e)
         {
@@ -62,6 +63,7 @@ public class AetheryteManager
 
     public static bool AetheryteIsVisible(uint aetheryteID)
     {
-        return GetList().Contains(aetheryteID);
+        var list = GetList();
+        return list.Count == 0 || list.Contains(aetheryteID);
     }
 }

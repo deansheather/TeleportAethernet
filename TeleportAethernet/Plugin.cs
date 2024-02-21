@@ -19,6 +19,8 @@ public sealed class Plugin : IDalamudPlugin
 
     private const string CommandName = "/teleportaethernet";
 
+    private const string CommandAlias = "/tpa";
+
     private readonly WindowSystem windowSystem = new();
 
     private readonly ConfigWindow configWindow;
@@ -28,6 +30,8 @@ public sealed class Plugin : IDalamudPlugin
     private readonly WotsitManager wotsitManager;
 
     private TeleportStateMachine? teleportStateMachine;
+
+    private bool wantAetheryteUpdate = false;
 
     public Plugin(
         [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface
@@ -40,26 +44,24 @@ public sealed class Plugin : IDalamudPlugin
             HelpMessage = "Teleport to the given aethernet name"
         });
 
-        DalamudServices.CommandManager.AddHandler("/tpa", new CommandInfo(OnCommand)
+        DalamudServices.CommandManager.AddHandler(CommandAlias, new CommandInfo(OnCommand)
         {
             HelpMessage = "Alias for " + CommandName
         });
-
 
         aliasWindow = new AliasWindow();
         windowSystem.AddWindow(aliasWindow);
         configWindow = new ConfigWindow(aliasWindow);
         windowSystem.AddWindow(configWindow);
 
-        // Initialize Aetherytes list and initialize Wotsit integration.
-        var aetheryteList = AetheryteManager.GetList();
         wotsitManager = new WotsitManager();
-        wotsitManager.TryInit(aetheryteList);
+        wotsitManager.TryInit(AetheryteManager.GetList());
         AetheryteManager.OnListUpdated += wotsitManager.TryInit;
         ConfigurationService.OnConfigSaved += wotsitManager.TryInit;
         wotsitManager.OnInvoke += SetTeleport;
 
         DalamudServices.Framework.Update += OnFrameworkUpdate;
+        DalamudServices.ClientState.TerritoryChanged += OnTerritoryChanged;
         DalamudServices.PluginInterface.UiBuilder.Draw += windowSystem.Draw;
         DalamudServices.PluginInterface.UiBuilder.OpenConfigUi += ShowConfigWindow;
     }
@@ -67,19 +69,28 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         DalamudServices.CommandManager.RemoveHandler(CommandName);
-        DalamudServices.Framework.Update -= OnFrameworkUpdate;
-        DalamudServices.PluginInterface.UiBuilder.Draw -= windowSystem.Draw;
-        DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= ShowConfigWindow;
+        DalamudServices.CommandManager.RemoveHandler(CommandAlias);
 
         AetheryteManager.OnListUpdated -= wotsitManager.TryInit;
         ConfigurationService.OnConfigSaved -= wotsitManager.TryInit;
         wotsitManager.OnInvoke -= SetTeleport;
+
+        DalamudServices.Framework.Update -= OnFrameworkUpdate;
+        DalamudServices.ClientState.TerritoryChanged -= OnTerritoryChanged;
+        DalamudServices.PluginInterface.UiBuilder.Draw -= windowSystem.Draw;
+        DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= ShowConfigWindow;
 
         wotsitManager.Dispose();
     }
 
     private void OnFrameworkUpdate(IFramework framework)
     {
+        if (wantAetheryteUpdate && DalamudServices.ClientState.LocalPlayer != null)
+        {
+            wantAetheryteUpdate = false;
+            AetheryteManager.Update();
+        }
+
         if (teleportStateMachine != null)
         {
             try
@@ -95,6 +106,13 @@ public sealed class Plugin : IDalamudPlugin
                 DalamudServices.Log.Warning($"Exception in TeleportStateMachine: {e}");
             }
         }
+    }
+
+    private void OnTerritoryChanged(ushort territoryID)
+    {
+        // Schedule an update for the list of visible aetherytes. If the value
+        // does change, Wotsit will be automatically reinitalized.
+        wantAetheryteUpdate = true;
     }
 
     private unsafe void OnCommand(string command, string args)

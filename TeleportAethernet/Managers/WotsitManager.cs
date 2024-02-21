@@ -70,6 +70,13 @@ public class WotsitManager : IDisposable
         }
     }
 
+    private bool ShouldAddEntry(List<uint> visibleAetheryteIDs, uint aetheryteID)
+    {
+        // If there are no visible Aetherytes, there might've been an issue
+        // loading the list.
+        return visibleAetheryteIDs.Count == 0 || visibleAetheryteIDs.Contains(aetheryteID);
+    }
+
     public void Init(List<uint> visibleAetheryteIDs)
     {
         ClearWotsit();
@@ -81,27 +88,27 @@ public class WotsitManager : IDisposable
 
         foreach (var alias in config.AethernetAliases)
         {
-            if (!visibleAetheryteIDs.Contains(alias.AetheryteID)) continue;
-            AddWotsitEntry(alias.Alias, alias.AetheryteID, alias.AethernetIndex);
+            if (!ShouldAddEntry(visibleAetheryteIDs, alias.AetheryteID)) continue;
+            AddWotsitEntry(null, alias.Alias, alias.AetheryteID, alias.AethernetIndex);
         }
 
         foreach (var townAethernet in TownAethernets.All)
         {
             foreach (var aethernet in townAethernet.AethernetList)
             {
-                if (!visibleAetheryteIDs.Contains(aethernet.AetheryteID)) continue;
-                AddWotsitEntry(aethernet.Name, townAethernet.AetheryteID, aethernet.Index);
+                if (!ShouldAddEntry(visibleAetheryteIDs, townAethernet.AetheryteID)) continue;
+                AddWotsitEntry(townAethernet.TownName, aethernet.Name, townAethernet.AetheryteID, aethernet.Index);
             }
         }
-
     }
 
-    internal void AddWotsitEntry(string name, uint aetheryteID, byte aethernetIndex)
+    internal void AddWotsitEntry(string? townName, string name, uint aetheryteID, byte aethernetIndex)
     {
         var displayName = $"Teleport to Aethernet - {name}";
+        var searchStr = townName != null ? $"{townName} - {name}" : name;
 
         // TODO: icon ID
-        var id = faRegisterWithSearch!.InvokeFunc(PluginInternalName, displayName, name, 0);
+        var id = faRegisterWithSearch!.InvokeFunc(PluginInternalName, displayName, searchStr, 0);
         registered.Add(id, (aetheryteID, aethernetIndex));
         DalamudServices.Log.Debug($"WotsitManager: Invoked FA.RegisterWithSearch(\"{PluginInternalName}\", \"{displayName}\", \"{name}\", 0)");
         DalamudServices.Log.Debug($"WotsitManager: Added Wotsit mapping: {id} => ({aetheryteID}, {aethernetIndex})");
