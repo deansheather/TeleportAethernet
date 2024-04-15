@@ -93,9 +93,10 @@ public static class TownAethernets
     public static readonly TownAethernet Idyllshire = new(75, "Idyllshire", new()
     {
         new(1, 75, "West Idyllshire"),
-        // These work, but they're probably never used.
-        // new(_, 75, "Prologue Gate (Western Hinterlands)"),
-        // new(_, 75, "Epilogue Gate (Eastern Hinterlands)"),
+        // Usually I don't add the gates, but for Idyllshire they're pretty
+        // useful as the Dravanian Hinterlands doesn't have an aetheryte.
+        new(2, 75, "Prologue Gate (Western Hinterlands)"),
+        new(3, 75, "Epilogue Gate (Eastern Hinterlands)"),
     });
 
     public static readonly TownAethernet RhalgrsReach = new(104, "Rhalgr's Reach", new()
