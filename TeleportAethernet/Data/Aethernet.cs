@@ -119,7 +119,7 @@ public static class TownAethernets
         new(7, 111, "Sekiseigumi Barracks"),
         new(8, 111, "Rakuza District"),
         // These work, but they're probably never used.
-        // new(_, 111, "The Ruby Price"),
+        new(9, 111, "The Ruby Price"),
         // new(_, 111, "Airship Landing"),
     });
 
