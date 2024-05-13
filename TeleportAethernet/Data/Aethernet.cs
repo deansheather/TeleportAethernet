@@ -118,8 +118,9 @@ public static class TownAethernets
         new(6, 111, "The Ruby Bazaar"),
         new(7, 111, "Sekiseigumi Barracks"),
         new(8, 111, "Rakuza District"),
-        // These work, but they're probably never used.
+        // The Ruby Price is on the far side of the map.
         new(9, 111, "The Ruby Price"),
+        // These work, but they're probably never used.
         // new(_, 111, "Airship Landing"),
     });
 
