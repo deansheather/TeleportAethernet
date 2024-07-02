@@ -64,7 +64,7 @@ public static class TownAethernets
         new(2, 62, "Wonder Square East"),
         new(3, 62, "Wonder Square West"),
         new(4, 62, "Event Square"),
-        new(5, 62, "Cactbot Board"),
+        new(5, 62, "Cactpot Board"),
         new(6, 62, "Round Square"),
         new(7, 62, "Chocobo Square"),
         new(8, 62, "Minion Square"),
@@ -182,6 +182,36 @@ public static class TownAethernets
         // new(_, 183, "The Gate of First Sight (Thavnair"),
     });
 
+    public static readonly TownAethernet Tuliyollal = new(216, "Tuliyollal", new()
+    {
+        new(1, 216, "Dirigible Landing"),
+        new(2, 216, "The Resplendent Quarter"),
+        new(3, 216, "The For'ard Cabins"),
+        new(4, 216, "Bayside Bevy Marketplace"),
+        new(5, 216, "Vollok Shoonsa"),
+        new(6, 216, "Wachumeqimeqi"),
+        new(7, 216, "Brightploom Post"),
+        // These work, but they're probably never used.
+        //new(_, 216, "Arch of the Dawn (Urqopacha)"),
+        //new(_, 216, "Arch of the Dawn (Kozama'uka)"),
+        //new(_, 216, "Ihuykatumu (Kozama'uka)"),
+        //new(_, 216, "Dirigible Landing (Yak T'el)"),
+        //new(_, 216, "Xak Tural Skygate (Shaaloani)"),
+    });
+
+    public static readonly TownAethernet SolutionNine = new(217, "Solution Nine", new()
+    {
+        new(1, 217, "Information Center"),
+        new(2, 217, "True Vue"),
+        new(3, 217, "Neon Stein"),
+        new(4, 217, "The Arcadion"),
+        new(5, 217, "Resolution"),
+        new(6, 217, "Nexus Arcade"),
+        new(7, 217, "Residential Sector"),
+        // These work, but they're probably never used.
+        // new(_, 217, "Scanning Port Nine (Heritage Found)"),
+    });
+
     public static readonly List<TownAethernet> All = new()
     {
         Gridania,
@@ -197,6 +227,8 @@ public static class TownAethernets
         Eulmore,
         OldSharlayan,
         RadzAtHan,
+        Tuliyollal,
+        SolutionNine,
     };
 
     public static TownAethernet? GetByAetheryteID(uint aetheryteID)

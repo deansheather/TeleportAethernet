@@ -7,6 +7,7 @@ using Dalamud.Plugin.Services;
 using System.Linq;
 using TeleportAethernet.Data;
 using Dalamud.Interface.Windowing;
+using ECommons.DalamudServices;
 using TeleportAethernet.Windows;
 using TeleportAethernet.Services;
 using TeleportAethernet.Managers;
@@ -21,6 +22,9 @@ public sealed class Plugin : IDalamudPlugin
 
     private const string CommandAlias = "/tpa";
 
+    [PluginService]
+    private static IDalamudPluginInterface DalamudPluginInterface { get; set; } = null!;
+
     private readonly WindowSystem windowSystem = new();
 
     private readonly ConfigWindow configWindow;
@@ -33,11 +37,10 @@ public sealed class Plugin : IDalamudPlugin
 
     private bool wantAetheryteUpdate = false;
 
-    public Plugin(
-        [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface
-    )
+    public Plugin()
     {
-        pluginInterface.Create<DalamudServices>();
+        DalamudPluginInterface.Create<DalamudServices>();
+        Svc.Init(DalamudPluginInterface);
 
         DalamudServices.CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
@@ -208,7 +211,7 @@ public sealed class Plugin : IDalamudPlugin
                 {
                     var shard = TownAethernets.All
                         .SelectMany(town => town.AethernetList)
-                        .First(shard => shard.Name.ToLower() == aethernetName);
+                        .First(shard => shard.Name.Equals(aethernetName, StringComparison.CurrentCultureIgnoreCase));
                     aetheryteID = shard.AetheryteID;
                     aethernetIndex = shard.Index;
                 }

@@ -12,7 +12,7 @@
   "AssemblyVersion": "0.0.0.1",
   "RepoUrl": "https://github.com/deansheather/TeleportAethernet",
   "ApplicableVersion": "any",
-  "DalamudAPILevel": 9,
+  "DalamudAPILevel": 10,
   "ImageUrls": null,
   "IconUrl": "https://raw.githubusercontent.com/deansheather/TeleportAethernet/main/images/icon.png"
 }

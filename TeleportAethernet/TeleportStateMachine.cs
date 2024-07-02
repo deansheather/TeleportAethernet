@@ -8,11 +8,11 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using System;
 using System.Linq;
 using TeleportAethernet.Game;
-using ClickLib.Clicks;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using FFXIVValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 using TeleportAethernet.Data;
 using System.Collections.Generic;
+using ECommons;
+using ECommons.UIHelpers.AddonMasterImplementations;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using TeleportAethernet.Services;
 
 namespace TeleportAethernet;
@@ -53,7 +53,7 @@ internal class TeleportStateMachine
         { TeleportState.InteractWithAetheryte, (500, 10000) },
         { TeleportState.AetheryteSelectFirmament, (1000, 5000) },
         { TeleportState.AetheryteSelectAethernet, (1000, 5000) },
-        { TeleportState.AethernetMenu, (1000, 5000) },
+        { TeleportState.AethernetMenu, (500, 5000) },
         { TeleportState.Completed, (0, 0) },
     };
 
@@ -187,15 +187,15 @@ internal class TeleportStateMachine
         SetState(TeleportState.CheckAetheryteRange);
     }
 
-    private static unsafe GameObject NearestAetheryte()
+    private static IGameObject NearestAetheryte()
     {
         if (DalamudServices.ClientState.LocalPlayer == null) throw new Exception("DalamudServices.ClientState.LocalPlayer is null");
 
         var closestDistance = float.MaxValue;
-        var closestObj = (GameObject?)null;
+        IGameObject? closestObj = null;
         foreach (var obj in DalamudServices.ObjectTable)
         {
-            if (obj != null && obj.ObjectKind == ObjectKind.Aetheryte)
+            if (obj is { ObjectKind: ObjectKind.Aetheryte })
             {
                 var distance = DistanceToGameObject(obj);
                 if (distance < closestDistance)
@@ -213,7 +213,7 @@ internal class TeleportStateMachine
         throw new Exception("No Aetheryte object found nearby");
     }
 
-    private static float DistanceToGameObject(GameObject obj)
+    private static float DistanceToGameObject(IGameObject obj)
     {
         if (DalamudServices.ClientState.LocalPlayer == null) throw new Exception("DalamudServices.ClientState.LocalPlayer is null");
 
@@ -222,7 +222,7 @@ internal class TeleportStateMachine
         return (float)Math.Sqrt((x * x) + (z * z));
     }
 
-    private unsafe void CheckAetheryteRange()
+    private void CheckAetheryteRange()
     {
         if (DalamudServices.ClientState.LocalPlayer == null) return;
 
@@ -236,17 +236,10 @@ internal class TeleportStateMachine
         ChatService.Instance.SendMessage("/lockon");
 
         var distance = DistanceToGameObject(aetheryteObj);
-        if (distance > MAX_AETHERYTE_INTERACT_DISTANCE)
-        {
-            SetState(TeleportState.MoveTowardsAetheryte);
-        }
-        else
-        {
-            SetState(TeleportState.InteractWithAetheryte);
-        }
+        SetState(distance > MAX_AETHERYTE_INTERACT_DISTANCE ? TeleportState.MoveTowardsAetheryte : TeleportState.InteractWithAetheryte);
     }
 
-    private unsafe void MoveTowardsAetheryte()
+    private void MoveTowardsAetheryte()
     {
         if (DalamudServices.ClientState.LocalPlayer == null) return;
 
@@ -257,7 +250,7 @@ internal class TeleportStateMachine
         SetState(TeleportState.WaitAetheryteInRange);
     }
 
-    private unsafe void WaitAetheryteInRange()
+    private void WaitAetheryteInRange()
     {
         if (DalamudServices.ClientState.LocalPlayer == null) return;
 
@@ -266,7 +259,11 @@ internal class TeleportStateMachine
         // Either wait till we're in range, or until 1s has passed.
         var distance = DistanceToGameObject(aetheryteObj);
         var timeSinceStateTransition = DateTime.Now - LastStateTransition;
-        if (distance < MAX_AETHERYTE_INTERACT_DISTANCE || timeSinceStateTransition > TimeSpan.FromSeconds(1))
+        var waitTime = TimeSpan.FromSeconds(1);
+        if (AetheryteID == TownAethernets.SolutionNine.AetheryteID)
+            // Walk a bit longer in Solution Nine.
+            waitTime = TimeSpan.FromSeconds(3);
+        if (distance < MAX_AETHERYTE_INTERACT_DISTANCE || timeSinceStateTransition > waitTime)
         {
             // Undo `/automove on`.
             ChatService.Instance.SendMessage("/automove off");
@@ -282,7 +279,7 @@ internal class TeleportStateMachine
 
         // Interact with it.
         var aetheryteGameObj = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)aetheryteObj.Address;
-        TargetSystem.Instance()->InteractWithObject(aetheryteGameObj, true);
+        TargetSystem.Instance()->InteractWithObject(aetheryteGameObj);
 
         // Special case for The Firmament in Ishgard.
         if ((AetheryteID, AethernetIndex) == TownAethernets.FirmamentIDs)
@@ -295,18 +292,23 @@ internal class TeleportStateMachine
         }
     }
 
-    private unsafe bool ClickAetheryteMenu(ushort index)
+    private static unsafe bool ClickAetheryteMenu(ushort index)
     {
         // Get AddonSelectString and ensure it's ready.
         var addonSelectString = Addon.GetAddon<AddonSelectString>("SelectString");
         if (addonSelectString == null || !addonSelectString->AtkUnitBase.IsVisible || addonSelectString->AtkUnitBase.UldManager.LoadedState != AtkLoadState.Loaded)
             return false;
 
-        ClickSelectString.Using((nint)addonSelectString).SelectItem(index);
-        return true;
+        if (new AddonMaster.SelectString((nint)addonSelectString).Entries.TryGetFirst(x => x.Index == index, out var entry))
+        {
+            entry.Select();
+            return true;
+        }
+
+        return false;
     }
 
-    private unsafe void AetheryteSelectFirmament()
+    private void AetheryteSelectFirmament()
     {
         // Click "Travel to the Firmament.", then we're done.
         // TODO: we should verify whether the quest to unlock the Firmament is
@@ -316,47 +318,27 @@ internal class TeleportStateMachine
         if (ClickAetheryteMenu(2)) SetState(TeleportState.Completed);
     }
 
-    private unsafe void AetheryteSelectAethernet()
+    private void AetheryteSelectAethernet()
     {
         // Click "Aethernet."
         if (ClickAetheryteMenu(0)) SetState(TeleportState.AethernetMenu);
     }
 
     // This is public because a debug command uses it.
-    public static unsafe void SendAethernetMenuEvent(byte aethernetIndex)
+    public static unsafe bool SendAethernetMenuEvent(byte aethernetIndex)
     {
-        // Get AgentTelepotTown and ensure it's ready.
-        var agentTelepotTown = Agent.GetAgent<AgentTelepotTown>(AgentId.TelepotTown);
-        if (agentTelepotTown == null || !agentTelepotTown->AgentInterface.IsAgentActive()) return;
+        var agentTelepotTown = AgentTelepotTown.Instance();
+        if (agentTelepotTown == null || !agentTelepotTown->IsAddonReady() || !agentTelepotTown->IsAgentActive())
+            return false;
 
-        // Find the first Aethernet in the list. The selected item is
-        // located at an offset from this value.
-        if (agentTelepotTown->AethernetList.First == null) throw new Exception("Could not get first Aethernet entry in AgentTelepotTown->AethernetList.First");
-
-        // Set the currently selected Aethernet shard to the given ID.
-        agentTelepotTown->AethernetList.First->CurrentSelected = aethernetIndex;
-
-        // Send the "Select" event to the agent.
-        var eventData1 = stackalloc byte[16];
-        var atkValue1 = stackalloc AtkValue[2];
-        atkValue1[0].ChangeType(FFXIVValueType.Int);
-        atkValue1[0].Int = 11;
-        atkValue1[1].ChangeType(FFXIVValueType.UInt);
-        atkValue1[1].UInt = aethernetIndex;
-        agentTelepotTown->AgentInterface.ReceiveEvent(eventData1, atkValue1, 2, 1);
-
-        // Send the "Teleport" event to the agent.
-        var eventData2 = stackalloc byte[16];
-        var atkValue2 = stackalloc AtkValue[1];
-        atkValue2[0].ChangeType(FFXIVValueType.Int);
-        atkValue2[0].Int = -2;
-        agentTelepotTown->AgentInterface.ReceiveEvent(eventData2, atkValue2, 1, 1);
+        agentTelepotTown->TeleportToAetheryte(aethernetIndex);
+        return true;
     }
 
-    private unsafe void AethernetMenu()
+    private void AethernetMenu()
     {
-        SendAethernetMenuEvent(AethernetIndex);
-        SetState(TeleportState.Completed);
+        if (SendAethernetMenuEvent(AethernetIndex))
+            SetState(TeleportState.Completed);
     }
 
     private void HandleTimeout()

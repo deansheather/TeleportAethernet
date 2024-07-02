@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using Dalamud.Interface.Internal.Notifications;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Windowing;
 using TeleportAethernet.Data;
 using TeleportAethernet.Services;
@@ -44,7 +44,11 @@ public class AliasWindow : Window
         catch (Exception e)
         {
             DalamudServices.Log.Error(e.ToString());
-            DalamudServices.PluginInterface.UiBuilder.AddNotification("[TeleportAethernet] Error in AliasWindow, see logs", null, NotificationType.Error);
+            DalamudServices.NotificationManager.AddNotification(new Notification
+            {
+                Content = "Error in AliasWindow, see logs",
+                Type = NotificationType.Error,
+            });
         }
     }
 

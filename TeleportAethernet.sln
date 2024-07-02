@@ -4,7 +4,7 @@ VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TeleportAethernet", "TeleportAethernet\TeleportAethernet.csproj", "{983CC3E2-9271-4F7C-BC80-B9BADE995F3B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClickLib", "ClickLib\ClickLib\ClickLib.csproj", "{C95AE7EC-8779-4C4D-9A97-5D145DD18AE1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ECommons", "ECommons\ECommons\ECommons.csproj", "{96659C70-8A8B-49E6-9AB4-DAE48CB55826}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

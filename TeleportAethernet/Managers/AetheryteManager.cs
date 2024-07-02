@@ -37,9 +37,9 @@ public class AetheryteManager
             if (tp->UpdateAetheryteList() == null) return;
 
             var ids = new List<uint>();
-            for (ulong i = 0; i < tp->TeleportList.Size(); i++)
+            for (long i = 0; i < tp->TeleportList.LongCount; i++)
             {
-                var aetheryte = tp->TeleportList.Get(i);
+                var aetheryte = tp->TeleportList[i];
                 ids.Add(aetheryte.AetheryteId);
             }
             ids.Sort();

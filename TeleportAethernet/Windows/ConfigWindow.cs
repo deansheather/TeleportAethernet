@@ -1,6 +1,6 @@
 using System;
 using System.Numerics;
-using Dalamud.Interface.Internal.Notifications;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Windowing;
 using TeleportAethernet.Services;
 using ImGuiNET;
@@ -46,7 +46,11 @@ public class ConfigWindow : Window
         catch (Exception e)
         {
             DalamudServices.Log.Error(e.ToString());
-            DalamudServices.PluginInterface.UiBuilder.AddNotification("[TeleportAethernet] Error in ConfigWindow, see logs", null, NotificationType.Error);
+            DalamudServices.NotificationManager.AddNotification(new Notification
+            {
+                Content = "Error in ConfigWindow, see logs",
+                Type = NotificationType.Error,
+            });
         }
     }
 
@@ -113,7 +117,11 @@ public class ConfigWindow : Window
             {
                 ConfigurationService.Config.AethernetAliases.RemoveAt(i);
                 ConfigurationService.Save();
-                DalamudServices.PluginInterface.UiBuilder.AddNotification($"[TeleportAethernet] Deleted alias {alias.Alias}", null, NotificationType.Success);
+                DalamudServices.NotificationManager.AddNotification(new Notification
+                {
+                    Content = $"Deleted alias {alias.Alias}",
+                    Type = NotificationType.Success,
+                });
             }
             if (ImGui.IsItemHovered())
             {
@@ -158,7 +166,11 @@ public class ConfigWindow : Window
             ConfigurationService.Config.customTeleportStateDelay = new();
             ConfigurationService.Config.customTeleportStateTimeout = new();
             ConfigurationService.Save();
-            DalamudServices.PluginInterface.UiBuilder.AddNotification("[TeleportAethernet] Reset custom teleport state delays and timeouts", null, NotificationType.Success);
+            DalamudServices.NotificationManager.AddNotification(new Notification
+            {
+                Content = "Reset custom teleport state delays and timeouts",
+                Type = NotificationType.Success,
+            });
         }
         if (ImGui.IsItemHovered())
         {
